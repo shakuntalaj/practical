@@ -1,96 +1,62 @@
 package com.hashedin.SocioApp.models;
 
 import jakarta.persistence.*;
-import java.time.LocalDateTime;
-import java.util.HashSet;
-import java.util.Set;
 
 @Entity
-@Table(name = "posts")
-public class Post {
+@Table(name = "follows", uniqueConstraints = @UniqueConstraint(columnNames = {"follower_id", "following_id"}))
+public class Follow {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    private String content;
-
-    private LocalDateTime createdAt = LocalDateTime.now();
+    @ManyToOne
+    @JoinColumn(name = "follower_id")
+    private com.hashedin.SocioApp.login.models.User follower;
 
     @ManyToOne
-    @JoinColumn(name = "user_id")
-    private com.hashedin.SocioApp.login.models.User user;
-
-    @ManyToOne
-    @JoinColumn(name = "original_post_id")
-    private Post originalPost; // for sharing
-
-    private String originalPostUrl; // URL to original post
-
-    @OneToMany(mappedBy = "post", cascade = CascadeType.ALL, orphanRemoval = true)
-    private Set<Comment> comments = new HashSet<>();
-
-    @ManyToMany
-    @JoinTable(name = "post_likes",
-        joinColumns = @JoinColumn(name = "post_id"),
-        inverseJoinColumns = @JoinColumn(name = "user_id"))
-    private Set<com.hashedin.SocioApp.login.models.User> likes = new HashSet<>();
-
-    @OneToMany(mappedBy = "post", cascade = CascadeType.ALL, orphanRemoval = true)
-    private Set<Report> reports = new HashSet<>();
+    @JoinColumn(name = "following_id")
+    private com.hashedin.SocioApp.login.models.User following;
 
     // Getters and Setters
 }
 
+package com.hashedin.SocioApp.repository;
 
-package com.hashedin.SocioApp.models;
+import com.hashedin.SocioApp.models.Post;
+import org.springframework.data.jpa.repository.JpaRepository;
+import java.util.List;
 
-import jakarta.persistence.*;
-import java.time.LocalDateTime;
-
-@Entity
-@Table(name = "comments")
-public class Comment {
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
-
-    private String text;
-
-    private LocalDateTime createdAt = LocalDateTime.now();
-
-    @ManyToOne
-    @JoinColumn(name = "user_id")
-    private com.hashedin.SocioApp.login.models.User user;
-
-    @ManyToOne
-    @JoinColumn(name = "post_id")
-    private Post post;
-
-    // Getters and Setters
+public interface PostRepository extends JpaRepository<Post, Long> {
+    List<Post> findByUserId(Long userId);
 }
 
 
-package com.hashedin.SocioApp.models;
+package com.hashedin.SocioApp.repository;
 
-import jakarta.persistence.*;
+import com.hashedin.SocioApp.models.Comment;
+import org.springframework.data.jpa.repository.JpaRepository;
 
-@Entity
-@Table(name = "reports")
-public class Report {
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
-
-    private String reason;
-
-    @ManyToOne
-    @JoinColumn(name = "user_id")
-    private com.hashedin.SocioApp.login.models.User reporter;
-
-    @ManyToOne
-    @JoinColumn(name = "post_id")
-    private Post post;
-
-    // Getters and Setters
+public interface CommentRepository extends JpaRepository<Comment, Long> {
 }
 
+
+package com.hashedin.SocioApp.repository;
+
+import com.hashedin.SocioApp.models.Report;
+import org.springframework.data.jpa.repository.JpaRepository;
+
+public interface ReportRepository extends JpaRepository<Report, Long> {
+}
+
+
+package com.hashedin.SocioApp.repository;
+
+import com.hashedin.SocioApp.models.Follow;
+import com.hashedin.SocioApp.login.models.User;
+import org.springframework.data.jpa.repository.JpaRepository;
+
+import java.util.Optional;
+
+public interface FollowRepository extends JpaRepository<Follow, Long> {
+    Optional<Follow> findByFollowerAndFollowing(User follower, User following);
+}
