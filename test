@@ -1,36 +1,29 @@
-package com.hashedin.SocioApp.repository;
+package com.hashedin.SocioApp.login.payload.request;
 
-import com.hashedin.SocioApp.models.Post;
-import com.hashedin.SocioApp.login.models.User;
-import com.hashedin.SocioApp.models.Share;
-import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.stereotype.Repository;
+public class PostRequest {
+    private String content;
+    private Long userId;
 
-import java.util.List;
+    public PostRequest() {}
 
-@Repository
-public interface ShareRepository extends JpaRepository<Share, Long> {
-    List<Share> findByUser(User user);
-    List<Share> findByOriginalPost(Post originalPost);
-}
+    public PostRequest(String content, Long userId) {
+        this.content = content;
+        this.userId = userId;
+    }
 
+    public String getContent() {
+        return content;
+    }
 
-.....
+    public void setContent(String content) {
+        this.content = content;
+    }
 
+    public Long getUserId() {
+        return userId;
+    }
 
-
-package com.hashedin.SocioApp.repository;
-
-import com.hashedin.SocioApp.models.Post;
-import com.hashedin.SocioApp.login.models.User;
-import com.hashedin.SocioApp.models.Report;
-import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.stereotype.Repository;
-
-import java.util.List;
-
-@Repository
-public interface ReportRepository extends JpaRepository<Report, Long> {
-    List<Report> findByPost(Post post);
-    List<Report> findByReportedBy(User user);
+    public void setUserId(Long userId) {
+        this.userId = userId;
+    }
 }
