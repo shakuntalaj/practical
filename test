@@ -1,129 +1,96 @@
-package com.hashedin.SocioApp.model;
+package com.hashedin.SocioApp.models;
+
+import jakarta.persistence.*;
+import java.time.LocalDateTime;
+import java.util.HashSet;
+import java.util.Set;
+
+@Entity
+@Table(name = "posts")
+public class Post {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    private String content;
+
+    private LocalDateTime createdAt = LocalDateTime.now();
+
+    @ManyToOne
+    @JoinColumn(name = "user_id")
+    private com.hashedin.SocioApp.login.models.User user;
+
+    @ManyToOne
+    @JoinColumn(name = "original_post_id")
+    private Post originalPost; // for sharing
+
+    private String originalPostUrl; // URL to original post
+
+    @OneToMany(mappedBy = "post", cascade = CascadeType.ALL, orphanRemoval = true)
+    private Set<Comment> comments = new HashSet<>();
+
+    @ManyToMany
+    @JoinTable(name = "post_likes",
+        joinColumns = @JoinColumn(name = "post_id"),
+        inverseJoinColumns = @JoinColumn(name = "user_id"))
+    private Set<com.hashedin.SocioApp.login.models.User> likes = new HashSet<>();
+
+    @OneToMany(mappedBy = "post", cascade = CascadeType.ALL, orphanRemoval = true)
+    private Set<Report> reports = new HashSet<>();
+
+    // Getters and Setters
+}
+
+
+package com.hashedin.SocioApp.models;
 
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "posts")
-public class Post {
-
+@Table(name = "comments")
+public class Comment {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    private String title;
-
-    @Column(length = 1000)
-    private String content;
+    private String text;
 
     private LocalDateTime createdAt = LocalDateTime.now();
 
-    private LocalDateTime updatedAt = LocalDateTime.now();
-
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne
     @JoinColumn(name = "user_id")
-    private User user;
+    private com.hashedin.SocioApp.login.models.User user;
+
+    @ManyToOne
+    @JoinColumn(name = "post_id")
+    private Post post;
 
     // Getters and Setters
 }
 
-.....
-package com.hashedin.SocioApp.repository;
 
-import com.hashedin.SocioApp.model.Post;
-import com.hashedin.SocioApp.login.models.User;
-import org.springframework.data.jpa.repository.JpaRepository;
+package com.hashedin.SocioApp.models;
 
-import java.util.List;
+import jakarta.persistence.*;
 
-public interface PostRepository extends JpaRepository<Post, Long> {
-    List<Post> findByUser(User user);
-}
+@Entity
+@Table(name = "reports")
+public class Report {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
 
-....
-package com.hashedin.SocioApp.payload;
+    private String reason;
 
-public class PostRequest {
-    private String title;
-    private String content;
+    @ManyToOne
+    @JoinColumn(name = "user_id")
+    private com.hashedin.SocioApp.login.models.User reporter;
+
+    @ManyToOne
+    @JoinColumn(name = "post_id")
+    private Post post;
 
     // Getters and Setters
 }
-...
-package com.hashedin.SocioApp.controller;
-
-import com.hashedin.SocioApp.model.Post;
-import com.hashedin.SocioApp.repository.PostRepository;
-import com.hashedin.SocioApp.login.models.User;
-import com.hashedin.SocioApp.payload.PostRequest;
-import com.hashedin.SocioApp.login.repository.UserRepository;
-import com.hashedin.SocioApp.login.security.services.UserDetailsImpl;
-
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
-import java.util.Optional;
-
-@RestController
-@RequestMapping("/api/post")
-public class PostController {
-
-    @Autowired
-    private PostRepository postRepository;
-
-    @Autowired
-    private UserRepository userRepository;
-
-    // Create a post
-    @PostMapping
-    public ResponseEntity<?> createPost(@RequestBody PostRequest request, @AuthenticationPrincipal UserDetailsImpl userDetails) {
-        Optional<User> user = userRepository.findById(userDetails.getId());
-        if (user.isPresent()) {
-            Post post = new Post();
-            post.setTitle(request.getTitle());
-            post.setContent(request.getContent());
-            post.setUser(user.get());
-
-            return ResponseEntity.ok(postRepository.save(post));
-        }
-        return ResponseEntity.badRequest().body("User not found");
-    }
-
-    // Update a post
-    @PutMapping("/{id}")
-    public ResponseEntity<?> updatePost(@PathVariable Long id, @RequestBody PostRequest request, @AuthenticationPrincipal UserDetailsImpl userDetails) {
-        Optional<Post> post = postRepository.findById(id);
-        if (post.isPresent() && post.get().getUser().getId().equals(userDetails.getId())) {
-            post.get().setTitle(request.getTitle());
-            post.get().setContent(request.getContent());
-            return ResponseEntity.ok(postRepository.save(post.get()));
-        }
-        return ResponseEntity.badRequest().body("Post not found or unauthorized");
-    }
-
-    // Get all posts by logged-in user
-    @GetMapping
-    public ResponseEntity<?> getUserPosts(@AuthenticationPrincipal UserDetailsImpl userDetails) {
-        Optional<User> user = userRepository.findById(userDetails.getId());
-        return user.map(value -> ResponseEntity.ok(postRepository.findByUser(value)))
-                .orElseGet(() -> ResponseEntity.badRequest().body("User not found"));
-    }
-
-    // Delete a post
-    @DeleteMapping("/{id}")
-    public ResponseEntity<?> deletePost(@PathVariable Long id, @AuthenticationPrincipal UserDetailsImpl userDetails) {
-        Optional<Post> post = postRepository.findById(id);
-        if (post.isPresent() && post.get().getUser().getId().equals(userDetails.getId())) {
-            postRepository.delete(post.get());
-            return ResponseEntity.ok("Post deleted successfully");
-        }
-        return ResponseEntity.badRequest().body("Post not found or unauthorized");
-    }
-}
-....
-.antMatchers("/api/post/**").authenticated()
-
 
