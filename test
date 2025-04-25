@@ -1,0 +1,129 @@
+package com.hashedin.SocioApp.model;
+
+import jakarta.persistence.*;
+import java.time.LocalDateTime;
+
+@Entity
+@Table(name = "posts")
+public class Post {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    private String title;
+
+    @Column(length = 1000)
+    private String content;
+
+    private LocalDateTime createdAt = LocalDateTime.now();
+
+    private LocalDateTime updatedAt = LocalDateTime.now();
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id")
+    private User user;
+
+    // Getters and Setters
+}
+
+.....
+package com.hashedin.SocioApp.repository;
+
+import com.hashedin.SocioApp.model.Post;
+import com.hashedin.SocioApp.login.models.User;
+import org.springframework.data.jpa.repository.JpaRepository;
+
+import java.util.List;
+
+public interface PostRepository extends JpaRepository<Post, Long> {
+    List<Post> findByUser(User user);
+}
+
+....
+package com.hashedin.SocioApp.payload;
+
+public class PostRequest {
+    private String title;
+    private String content;
+
+    // Getters and Setters
+}
+...
+package com.hashedin.SocioApp.controller;
+
+import com.hashedin.SocioApp.model.Post;
+import com.hashedin.SocioApp.repository.PostRepository;
+import com.hashedin.SocioApp.login.models.User;
+import com.hashedin.SocioApp.payload.PostRequest;
+import com.hashedin.SocioApp.login.repository.UserRepository;
+import com.hashedin.SocioApp.login.security.services.UserDetailsImpl;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+import java.util.Optional;
+
+@RestController
+@RequestMapping("/api/post")
+public class PostController {
+
+    @Autowired
+    private PostRepository postRepository;
+
+    @Autowired
+    private UserRepository userRepository;
+
+    // Create a post
+    @PostMapping
+    public ResponseEntity<?> createPost(@RequestBody PostRequest request, @AuthenticationPrincipal UserDetailsImpl userDetails) {
+        Optional<User> user = userRepository.findById(userDetails.getId());
+        if (user.isPresent()) {
+            Post post = new Post();
+            post.setTitle(request.getTitle());
+            post.setContent(request.getContent());
+            post.setUser(user.get());
+
+            return ResponseEntity.ok(postRepository.save(post));
+        }
+        return ResponseEntity.badRequest().body("User not found");
+    }
+
+    // Update a post
+    @PutMapping("/{id}")
+    public ResponseEntity<?> updatePost(@PathVariable Long id, @RequestBody PostRequest request, @AuthenticationPrincipal UserDetailsImpl userDetails) {
+        Optional<Post> post = postRepository.findById(id);
+        if (post.isPresent() && post.get().getUser().getId().equals(userDetails.getId())) {
+            post.get().setTitle(request.getTitle());
+            post.get().setContent(request.getContent());
+            return ResponseEntity.ok(postRepository.save(post.get()));
+        }
+        return ResponseEntity.badRequest().body("Post not found or unauthorized");
+    }
+
+    // Get all posts by logged-in user
+    @GetMapping
+    public ResponseEntity<?> getUserPosts(@AuthenticationPrincipal UserDetailsImpl userDetails) {
+        Optional<User> user = userRepository.findById(userDetails.getId());
+        return user.map(value -> ResponseEntity.ok(postRepository.findByUser(value)))
+                .orElseGet(() -> ResponseEntity.badRequest().body("User not found"));
+    }
+
+    // Delete a post
+    @DeleteMapping("/{id}")
+    public ResponseEntity<?> deletePost(@PathVariable Long id, @AuthenticationPrincipal UserDetailsImpl userDetails) {
+        Optional<Post> post = postRepository.findById(id);
+        if (post.isPresent() && post.get().getUser().getId().equals(userDetails.getId())) {
+            postRepository.delete(post.get());
+            return ResponseEntity.ok("Post deleted successfully");
+        }
+        return ResponseEntity.badRequest().body("Post not found or unauthorized");
+    }
+}
+....
+.antMatchers("/api/post/**").authenticated()
+
+
