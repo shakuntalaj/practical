@@ -1,62 +1,31 @@
-package com.hashedin.SocioApp.models;
+@RestController
+@RequestMapping("/api/posts")
+public class PostController {
 
-import jakarta.persistence.*;
+  @Autowired private PostService postService;
 
-@Entity
-@Table(name = "follows", uniqueConstraints = @UniqueConstraint(columnNames = {"follower_id", "following_id"}))
-public class Follow {
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+  @PostMapping
+  @PreAuthorize("hasRole('USER') or hasRole('ADMIN')")
+  public ResponseEntity<?> createPost(@RequestBody PostRequest postRequest) {
+    return ResponseEntity.ok(postService.createPost(postRequest));
+  }
 
-    @ManyToOne
-    @JoinColumn(name = "follower_id")
-    private com.hashedin.SocioApp.login.models.User follower;
+  @PutMapping("/{id}")
+  @PreAuthorize("hasRole('USER') or hasRole('ADMIN')")
+  public ResponseEntity<?> updatePost(@PathVariable Long id, @RequestBody PostRequest postRequest) {
+    return ResponseEntity.ok(postService.updatePost(id, postRequest));
+  }
 
-    @ManyToOne
-    @JoinColumn(name = "following_id")
-    private com.hashedin.SocioApp.login.models.User following;
+  @GetMapping("/user/{userId}")
+  public ResponseEntity<?> getAllPostsByUser(@PathVariable Long userId,
+                                             @RequestParam Optional<String> search) {
+    return ResponseEntity.ok(postService.getAllPostsByUser(userId, search));
+  }
 
-    // Getters and Setters
-}
-
-package com.hashedin.SocioApp.repository;
-
-import com.hashedin.SocioApp.models.Post;
-import org.springframework.data.jpa.repository.JpaRepository;
-import java.util.List;
-
-public interface PostRepository extends JpaRepository<Post, Long> {
-    List<Post> findByUserId(Long userId);
-}
-
-
-package com.hashedin.SocioApp.repository;
-
-import com.hashedin.SocioApp.models.Comment;
-import org.springframework.data.jpa.repository.JpaRepository;
-
-public interface CommentRepository extends JpaRepository<Comment, Long> {
-}
-
-
-package com.hashedin.SocioApp.repository;
-
-import com.hashedin.SocioApp.models.Report;
-import org.springframework.data.jpa.repository.JpaRepository;
-
-public interface ReportRepository extends JpaRepository<Report, Long> {
-}
-
-
-package com.hashedin.SocioApp.repository;
-
-import com.hashedin.SocioApp.models.Follow;
-import com.hashedin.SocioApp.login.models.User;
-import org.springframework.data.jpa.repository.JpaRepository;
-
-import java.util.Optional;
-
-public interface FollowRepository extends JpaRepository<Follow, Long> {
-    Optional<Follow> findByFollowerAndFollowing(User follower, User following);
+  @DeleteMapping("/{id}")
+  @PreAuthorize("hasRole('USER') or hasRole('ADMIN')")
+  public ResponseEntity<?> deletePost(@PathVariable Long id) {
+    postService.deletePost(id);
+    return ResponseEntity.ok(new MessageResponse("Post deleted successfully!"));
+  }
 }
