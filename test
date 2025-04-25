@@ -1,16 +1,51 @@
-package com.hashedin.SocioApp.repository;
+package com.hashedin.SocioApp.model;
 
-import com.hashedin.SocioApp.model.Like;
-import com.hashedin.SocioApp.model.Post;
-import com.hashedin.SocioApp.model.User;
-import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.stereotype.Repository;
+import jakarta.persistence.*;
 
-import java.util.Optional;
+@Entity
+@Table(name = "likes", uniqueConstraints = {
+        @UniqueConstraint(columnNames = {"post_id", "user_id"})
+})
+public class Like {
 
-@Repository
-public interface LikeRepository extends JpaRepository<Like, Long> {
-    Optional<Like> findByPostAndUser(Post post, User user);
-    boolean existsByPostAndUser(Post post, User user);
-    void deleteByPostAndUser(Post post, User user);
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    @ManyToOne
+    @JoinColumn(name = "post_id", nullable = false)
+    private Post post;
+
+    @ManyToOne
+    @JoinColumn(name = "user_id", nullable = false)
+    private User user;
+
+    // Constructors
+    public Like() {}
+
+    public Like(Post post, User user) {
+        this.post = post;
+        this.user = user;
+    }
+
+    // Getters and Setters
+    public Long getId() {
+        return id;
+    }
+
+    public Post getPost() {
+        return post;
+    }
+
+    public void setPost(Post post) {
+        this.post = post;
+    }
+
+    public User getUser() {
+        return user;
+    }
+
+    public void setUser(User user) {
+        this.user = user;
+    }
 }
